@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telc C1 Leseverstehen Quiz Sammlung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CRITICAL FIX: Ensure HTML and Body fill the entire viewport */
+        html {
+            height: 100%; /* Make HTML element fill full viewport height */
+            /* overflow-x: hidden; is fine to prevent horizontal scroll */
+        }
+
+        body {
+            margin: 0; /* Remove default body margin */
+            padding: 0; /* Remove default body padding */
+            height: 100%; /* Make body fill full viewport height (based on html height) */
+            width: 100%;  /* Make body fill full viewport width */
+            
+            font-family: 'Inter', sans-serif;
+            background-color: #1e293b; /* Slate-900 for a deep dark background - this will now cover everything! */
+            
+            /* The main content should now flow from the top naturally. */
+            /* We'll use a wrapper div for horizontal centering and vertical padding. */
+        }
+
+        /* Hide elements initially for JS to control visibility */
+        .hidden {
+            display: none;
+        }
+        /* Style for correct/incorrect feedback */
+        .feedback-icon {
+            margin-left: 0.5rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .correct {
+            color: #34d399; /* Emerald-400 for a vibrant green check */
+        }
+        .incorrect {
+            color: #f87171; /* Red-400 for a clear red cross */
+        }
+
+        /* Specific style for select dropdowns to give them a consistent height/look */
+        select {
+            appearance: none; /* Remove default browser styling */
+            /* Updated SVG for light arrow on dark background */
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%23cbd5e1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e"); /* Slate-300 color for arrow */
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Make space for the custom arrow */
+        }
+    </style>
+</head>
+<body>
+    <div class="p-4 sm:p-6 lg:p-8 w-full mx-auto max-w-6xl">
+
+        <div id="main-quiz-container" class="bg-slate-800 p-8 rounded-lg shadow-2xl w-full border-t-4 border-sky-500 ring-1 ring-slate-700">
+            <h1 class="text-3xl font-extrabold text-slate-100 mb-6 text-center">Telc C1 Leseverstehen Trainer</h1>
+
+            <div class="mb-8 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+                <div class="flex items-center space-x-3 w-full sm:w-auto">
+                    <label for="quiz-select" class="text-lg font-semibold text-slate-200">Choose Quiz:</label>
+                    <select id="quiz-select" class="p-2.5 border border-slate-600 rounded-lg shadow-sm focus:ring-sky-500 focus:border-sky-500 block w-full sm:w-auto bg-slate-700 text-slate-100 hover:border-sky-400 transition">
+                        </select>
+                </div>
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                    <button id="add-quiz-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md shadow-blue-500/30">
+                        Add Quiz
+                    </button>
+                    <button id="delete-quiz-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md shadow-red-500/30">
+                        Delete Quiz
+                    </button>
+                </div>
+                <button id="skip-button" class="bg-violet-400 hover:bg-violet-300 text-slate-900 font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md shadow-violet-500/30">
+                    Skip to Next Quiz
+                </button>
+            </div>
+
+            <div id="quiz-content-area">
+                </div>
+        </div>
+
+        <div id="add-quiz-form" class="hidden bg-slate-800 p-8 rounded-lg shadow-2xl w-full border-t-4 border-sky-500 ring-1 ring-slate-700 mt-8">
+            <h2 class="text-3xl font-extrabold text-slate-100 mb-6 text-center">Add New Quiz</h2>
+            <div class="space-y-6">
+                <div>
+                    <label for="new-quiz-title" class="block text-lg font-semibold text-slate-200 mb-2">Quiz Title:</label>
+                    <input type="text" id="new-quiz-title" class="w-full p-3 rounded-lg bg-slate-700 text-slate-100 border border-slate-600 focus:ring-sky-500 focus:border-sky-500" placeholder="e.g., 3) Advanced German Vocabulary">
+                </div>
+                <div>
+                    <label for="new-quiz-text-sections" class="block text-lg font-semibold text-slate-200 mb-2">Text Sections (A-H, one per line, e.g., A) Text...):</label>
+                    <textarea id="new-quiz-text-sections" rows="10" class="w-full p-3 rounded-lg bg-slate-700 text-slate-100 border border-slate-600 focus:ring-sky-500 focus:border-sky-500" placeholder="A) Die Forscher sammelten zunächst Daten...&#10;B) Die im Browser gezeigten Seiten waren..."></textarea>
+                </div>
+                <div>
+                    <label for="new-quiz-statements" class="block text-lg font-semibold text-slate-200 mb-2">Statements & Answers (one per line, e.g., 1 ➝ G):</label>
+                    <textarea id="new-quiz-statements" rows="8" class="w-full p-3 rounded-lg bg-slate-700 text-slate-100 border border-slate-600 focus:ring-sky-500 focus:border-sky-500" placeholder="1 ➝ G&#10;2 ➝ D&#10;3 ➝ H"></textarea>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mt-6">
+                    <button id="save-new-quiz-button" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md shadow-emerald-500/30">
+                        Save New Quiz
+                    </button>
+                    <button id="cancel-add-quiz-button" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md shadow-gray-500/30">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="feedback-box" class="hidden fixed inset-0 bg-slate-950 bg-opacity-70 flex items-center justify-center p-4 z-50">
+            <div class="bg-slate-800 p-6 rounded-lg shadow-xl text-center max-w-sm w-full border border-slate-700">
+                <p id="feedback-message" class="text-lg font-medium text-slate-100 mb-5"></p>
+                <button id="feedback-close-button" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 px-5 rounded-lg transition duration-300">
+                    Close
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Quiz Data Definitions ---
+        // Default quizzes - used if no data is found in localStorage
+        const defaultQuizzes = [
+            {
+                id: "quiz1",
+                title: "1) Die Maus als Stimmungsbarometer",
+                textSections: {
+                    A: "Die Forscher sammelten zunächst Daten, indem sie die Probanden ihren Gemütszustand notieren ließen.",
+                    B: "Die im Browser gezeigten Seiten waren so manipuliert, dass sie absichtlich Frustration und Ärger hervorriefen.",
+                    C: "Gleichzeitig bewegten sie die Maus langsamer.",
+                    D: "Indem wir die negative Stimmung registrieren, können wir diesen Punkt nun genau bestimmen.",
+                    E: "Jetzt wird nämlich nicht nur die Tastatur, sondern auch die Maus zum Verräter unserer Befindlichkeiten.",
+                    F: "Trotz aller technologischen Fortschritte hinken Computer in diesem Bereich hinterher.",
+                    G: "Während wir dann vielleicht eher ein unliebsames Spionieren sehen, hat diese Technologie auch Vorteile.",
+                    H: "Zudem erhielten die Probanden für jede falsche Antwort einen Abzug und damit schlechtere Ergebnisse."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "E" },
+                    { number: 2, correctAnswer: "B" },
+                    { number: 3, correctAnswer: "H" },
+                    { number: 4, correctAnswer: "C" },
+                    { number: 5, correctAnswer: "G" },
+                    { number: 6, correctAnswer: "D" }
+                ]
+            },
+            {
+                id: "quiz2",
+                title: "2) Die Sprache der Tiere",
+                textSections: {
+                    A: "Daneben verwenden Tiere auch Düfte, Körperhaltung und sogar elektrische Signale zum Austausch von Informationen.",
+                    B: "Der Großteil kommt mit einer Grundausstattung an Lautäußerungen zur Welt, die genetisch weitergegeben wird.",
+                    C: "Diese Töne sind also so tief, dass unser Ohr sie gar nicht wahrnehmen kann.",
+                    D: "Doch auch andere Arten verfügen über erstaunliche Fähigkeiten.",
+                    E: "Folglich könne man ihre Lautäußerungen nicht als Sprache bezeichnen.",
+                    F: "Forscher haben nämlich herausgefunden, dass Elefanten auch Fremdsprachen lernen können.",
+                    G: "Mal soll ein Partner angelockt, mal das Revier verteidigt oder Artgenossen vor Feinden gewarnt werden.",
+                    H: "Ob diese Art der tierischen Kommunikation jedoch eine wirkliche Sprache ist, darüber streiten die Forscher noch."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "G" },
+                    { number: 2, correctAnswer: "D" },
+                    { number: 3, correctAnswer: "H" },
+                    { number: 4, correctAnswer: "B" },
+                    { number: 5, correctAnswer: "A" },
+                    { number: 6, correctAnswer: "C" }
+                ]
+            },
+            {
+                id: "quiz3",
+                title: "3) Goldvorkommen in Deutschland",
+                textSections: {
+                    A: "Anfangs wurde dort nur oberirdisch gegraben, sodass die Spuren dieses Tagebaus noch heute in der Landschaft zu sehen sind.",
+                    B: "Dadurch sorgte der Goldsucher in ganz Deutschland für Schlagzeilen.",
+                    C: "Es gibt vor allem hohe Goldgehalte, die in seltenen Fällen bis über ein Kilo pro Tonne reichen.",
+                    D: "Insgesamt rund 1,2 Tonnen reines Gold entlockten ihm die Bergleute in harter Arbeit über die Jahrhunderte.",
+                    E: "Mit diesem Wanderweg ist neben der Gold- und Bergbauabteilung im Museum Korbach ein weiteres attraktives Freizeitangebot in der Region Korbach geschaffen worden.",
+                    F: "Nicht weniger als rund 20 Kilometer Höhlen und Gänge aus dieser Zeit sind auf engem Raum nachgewiesen.",
+                    G: "Schnell reiften danach die Pläne, einen Teil des Goldbergbaus auch für Besucher zu erschließen.",
+                    H: "Sehen Sie selbst: Das Besucherbergwerk bietet Ihnen, liebe Gäste, in der früheren Bergbausiedlung ein spannendes und lehrreiches Abenteuer."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "H" },
+                    { number: 2, correctAnswer: "A" },
+                    { number: 3, correctAnswer: "F" },
+                    { number: 4, correctAnswer: "B" },
+                    { number: 5, correctAnswer: "G" },
+                    { number: 6, correctAnswer: "D" }
+                ]
+            },
+            {
+                id: "quiz4",
+                title: "4) Die bewegte Geschichte des Aufzugs",
+                textSections: {
+                    A: "Dieses bahnbrechende Hochhausprojekt erforderte technische Neuerungen.",
+                    B: "Die bequeme Fahrt im Aufzug muss mit langen Wartezeiten erkauft werden und je mehr Fahrgäste, desto komplizierter die Berechnung der günstigsten Fahrwege.",
+                    C: "All diesen Neuerungen zum Trotz ist der Fahrstuhl im Grunde selbst heutzutage noch eine ziemlich ineffiziente Sache.",
+                    D: "1853 stellte er eine Fangvorrichtung vor, die bei einem Riss des Seils verhinderte, dass die Kabine ungebremst in die Tiefe stürzte.",
+                    E: "Trotz dieser Rückschläge glaubte er fest an seine Idee.",
+                    F: "So fanden Archäologen in altrömischen Ruinen Überreste von Schächten, in denen Plattformen auf und ab fahren konnten.",
+                    G: "Magnete sollen die Seile ersetzen, die Kabine wie eine Magnetschwebebahn in der Vertikalen auf und ab gleiten.",
+                    H: "Einfache Glocken oder Summer besorgten in diesen frühen Kabinen die Kommunikation über die Fahrtrichtung und demnächst anzusteuernde Haltestellen."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "F" },
+                    { number: 2, correctAnswer: "D" },
+                    { number: 3, correctAnswer: "H" },
+                    { number: 4, correctAnswer: "B" },
+                    { number: 5, correctAnswer: "C" },
+                    { number: 6, correctAnswer: "G" }
+                ]
+            },
+            {
+                id: "quiz5",
+                title: "5) Kleine Geschichte der deutschen Rechtschreibung",
+                textSections: {
+                    A: "Damit folgte Deutschland nun den erwähnten Richtlinien der übrigen deutschsprachigen Länder.",
+                    B: "Der größte Streitpunkt war deshalb auch die Frage nach der „richtigen“ Schriftsprache.",
+                    C: "Es dauerte lange, bis Dialekte Eingang in die Schriftsprache fanden.",
+                    D: "Die Bedeutung dieses Werks lag nicht nur in der Erstellung einer dialektunabhängigen Schrift, sondern auch in der Entwicklung einer deutschen Hochsprache.",
+                    E: "Die Vorschläge dieser Vertreter wurden in den verschiedenen Staaten unterschiedlich umgesetzt.",
+                    F: "Die Umsetzung dieser Reform erwies sich allerdings als schwieriger, als man sich das wünschte.",
+                    G: "Dieses fremde Alphabet bot jedoch nicht für alle deutschen Sprachlaute eine Möglichkeit der schriftlichen Wiedergabe.",
+                    H: "Auch beim Schreiben müssten wir uns ständig überlegen, wie wir ein Wort darstellen."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "H" },
+                    { number: 2, correctAnswer: "G" },
+                    { number: 3, correctAnswer: "B" },
+                    { number: 4, correctAnswer: "D" },
+                    { number: 5, correctAnswer: "E" },
+                    { number: 6, correctAnswer: "F" }
+                ]
+            },
+            {
+                id: "quiz6",
+                title: "6) Die Brüder Grimm",
+                textSections: {
+                    A: "An den Wänden hängen Aquarelle und Radierungen, auf Regalen stehen Skulpturen.",
+                    B: "Kürzer Zeit sitzen wir in einem großräumigen Dachatelier, an einem Holztisch.",
+                    C: "Es sei aber kein Lexikon, sondern ein kritisches Wörterbuch.",
+                    D: "Im Hof steht eine große Bronzeplastik mit dem Titel „Butt im Griff\".",
+                    E: "Immer wieder wiederholt sich diese Szene im Laufe unseres Gesprächs.",
+                    F: "Schließlich entgegnet er, dass das mit Ästhetik zu tun habe.",
+                    G: "In einer Ecke liegt ein aufgeschlagenes Märchenbuch, als wäre es gerade gelesen worden.",
+                    H: "Er erzählt, wie ihn die Sprachgewalt der Grimms schon als Kind fasziniert habe."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "B" },
+                    { number: 2, correctAnswer: "A" },
+                    { number: 3, correctAnswer: "D" },
+                    { number: 4, correctAnswer: "E" },
+                    { number: 5, correctAnswer: "F" },
+                    { number: 6, correctAnswer: "C" }
+                ]
+            },
+            {
+                id: "quiz7",
+                title: "7) Höhlenforschung: Expeditionen ins Erdinnere",
+                textSections: {
+                    A: "Als zusätzliches Motiv der Höhlenforscher sind aber auch Selbstbestätigung, Neugier und die Lust am Nervenkitzel zu nennen.",
+                    B: "Dabei lerne man zum Beispiel die Verwendung der notwendigen Ausrüstung.",
+                    C: "Daneben sei es natürlich auch wichtig, Unbekanntes zu entdecken, wie zum Beispiel spezielle Lebewesen.",
+                    D: "Diese Begriffsbestimmung lässt nur erahnen, welche ausgedehnten Systeme von Gängen, Schluchten, ja sogar Wasserläufen und Seen sich dahinter verbergen.",
+                    E: "Denn Farbpigmente werden mangels UV-Strahlung nicht gebildet, auch ihr Sehsinn ist meist unterentwickelt.",
+                    F: "Für Höhlen, in denen sich Seen und überflutete Gänge befinden, ist außerdem eine Taucherausrüstung notwendig.",
+                    G: "Zu den Höhlenbewohnern gehören zahlreiche Tierarten, die an diese besondere Umgebung angepasst sind.",
+                    H: "Zum anderen sei Höhlenforschung eine interdisziplinäre Wissenschaft, die viele Fächer zusammenführe."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "C" },
+                    { number: 2, correctAnswer: "E" },
+                    { number: 3, correctAnswer: "H" },
+                    { number: 4, correctAnswer: "D" },
+                    { number: 5, correctAnswer: "B" },
+                    { number: 6, correctAnswer: "F" }
+                ]
+            },
+            {
+                id: "quiz8",
+                title: "8) Ein Meilenstein in der Erforschung des alten Ägypten",
+                textSections: {
+                    A: "Dieses trug eine Inschrift in drei Sprachen.",
+                    B: "Andere dagegen hatten phonetische Bedeutung, bildeten also Dinge ab, meinten aber nur den Lautwert.",
+                    C: "Dort wurde das gute Stück ausgestellt.",
+                    D: "Ihren Namen erhielt die Dynastie von einem seiner Vorgänger, Ptolemaios I.",
+                    E: "Damit wurde eines der Rätsel um die berühmte ägyptische Königin gelöst.",
+                    F: "Weitere Namen aus der altägyptischen Spätzeit wie Alexander, Tiberius und Trajan folgten.",
+                    G: "Heute gilt dieses Schreiben als entscheidender Wendepunkt der Ägyptologie, wurde doch damit der Schlüssel zur altägyptischen Zivilisation gefunden.",
+                    H: "Im Alter von 31 Jahren gelang ihm der Durchbruch zur Entschlüsselung."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "G" },
+                    { number: 2, correctAnswer: "A" },
+                    { number: 3, correctAnswer: "C" },
+                    { number: 4, correctAnswer: "H" },
+                    { number: 5, correctAnswer: "B" },
+                    { number: 6, correctAnswer: "F" }
+                ]
+            },
+            {
+                id: "quiz9",
+                title: "9) Eine Box verändert die Welt",
+                textSections: {
+                    A: "Die Größe, die er für seine Transportbehälter gewählt hatte, wurde zum Standard.",
+                    B: "Dieses erhoffte sich von den Containern logistische Verbesserungen in der Sicherung des Nachschubs.",
+                    C: "Doch sie waren am Streit über die Abmessungen der Container und an streikenden Hafenarbeitern gescheitert.",
+                    D: "Es sollte genau dieser Umstand sein, dem sie in der Folge ihre Beschäftigung verdanken würden.",
+                    E: "Für die Hafenarbeiter war das nicht nur Schwerstarbeit, sondern lebensgefährlich.",
+                    F: "Gesteuert und auf ihrer Reise verfolgt werden diese dabei von Computern und globalen Logistiksystemen.",
+                    G: "Handelsrechtliche Überlegungen dieser Art konnten ihren Siegeszug nicht aufhalten.",
+                    H: "In den 1960er Jahren betrug der Warenhandel weniger als 20 Prozent der globalen Wirtschaftsleistung."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "E" },
+                    { number: 2, correctAnswer: "C" },
+                    { number: 3, correctAnswer: "A" },
+                    { number: 4, correctAnswer: "D" },
+                    { number: 5, correctAnswer: "F" },
+                    { number: 6, correctAnswer: "H" }
+                ]
+            },
+            {
+                id: "quiz10",
+                title: "10) Alternative Heilmethode",
+                textSections: {
+                    A: "Doch können einzelne Methoden der alternativen Medizin auch massiv in den Organismus eingreifen.",
+                    B: "Andererseits habe aber auch die alternative Medizin einige Nachteile, die jedoch weitgehend unbekannt seien.",
+                    C: "Diese Entwicklung, die man mit dem Spruch „Wer heilt, hat recht“ umschreiben könnte, weise geradezu den Weg zurück ins Mittelalter.",
+                    D: "Darüber hinaus gibt es klare Gründe für die wachsende Beliebtheit der alternativen Behandlungsmethoden.",
+                    E: "Nicht selten sind diese vermeintlichen Erfolge aber nicht auf die tatsächliche Wirksamkeit der alternativen Therapien zurückzuführen, sondern auf die innere Einstellung der Patienten.",
+                    F: "Denn die Entscheidung der Patienten wird in der Regel von einer Vielzahl von Faktoren beeinflusst.",
+                    G: "Was bei einigen als Alternativmedizin gilt, wie etwa einige Zweige der Pflanzenheilkunde, fällt bei anderen unter die Schulmedizin.",
+                    H: "Wenn er z.B. ein Schmerzmittel einnimmt, ist ihm die Funktionsweise des Wirkstoffes nicht so wichtig."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "G" },
+                    { number: 2, correctAnswer: "C" },
+                    { number: 3, correctAnswer: "F" },
+                    { number: 4, correctAnswer: "A" },
+                    { number: 5, correctAnswer: "E" },
+                    { number: 6, correctAnswer: "H" }
+                ]
+            },
+            {
+                id: "quiz11",
+                title: "11) Die besondere Begabung der Gesichtserkennung",
+                textSections: {
+                    A: "Andere hingegen sind besonders gut darin, Gesichter zuzuordnen, wenn sie mehrere Fotos vor sich haben.",
+                    B: "Bei diesem Verfahren werden die charakteristischen Merkmale der Gesichtszüge anhand eines digitalisierten Bildes bestimmt.",
+                    C: "Betroffene sind nicht dazu in der Lage, Menschen anhand ihres Gesichts zu identifizieren.",
+                    D: "Doch schon jetzt eröffnet sie viele Perspektiven – in der Psychologie und in der kriminalistischen Praxis.",
+                    E: "Man vermutet, dass sie genetisch weitergegeben werden.",
+                    F: "So lokalisiert die Erkennungssoftware das Gesicht und berechnet seine charakteristischen Eigenschaften.",
+                    G: "So nennt man Menschen, die sich außerordentlich gut Gesichter merken können.",
+                    H: "Wie viele Menschen man wirklich als Super-Recogniser bezeichnen könne, sei unklar."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "G" },
+                    { number: 2, correctAnswer: "D" },
+                    { number: 3, correctAnswer: "C" },
+                    { number: 4, correctAnswer: "H" },
+                    { number: 5, correctAnswer: "A" },
+                    { number: 6, correctAnswer: "E" }
+                ]
+            },
+            {
+                id: "quiz12",
+                title: "12) Satzzeichen, mächtige Werkzeuge",
+                textSections: {
+                    A: "Bereits 1762 bemängelte der Gelehrte Johann Christoph Gottsched, dass es im Deutschen keine Zeichen für Staunen oder Mitleid gebe.",
+                    B: "Dabei konnte damals von verbindlichen Normen noch gar keine Rede sein.",
+                    C: "Das beklagen selbst die leidenschaftlichsten Verfechter von Kurznachrichten.",
+                    D: "Erst im Mittelalter kamen irische Mönche auf die Idee, diese Textschlangen mit Zeichen zu versehen, um anderen Lesern das Leben einfacher zu machen.",
+                    E: "Erst viel später – mit den neuen Medien – ging dieser langgehegte Wunsch in Erfüllung.",
+                    F: "In ihr reiht sich Buchstabe an Buchstabe, Wort an Wort.",
+                    G: "Rund 2500 Jahre nach den ersten Schriftzeichen trennen darin erstmals Striche und Punkte die Worte.",
+                    H: "Um dies zu verstehen, muss man die Arbeitsweise in den mittelalterlichen Schreibstuben beachten."
+                },
+                statements: [
+                    { number: 1, correctAnswer: "G" },
+                    { number: 2, correctAnswer: "F" },
+                    { number: 3, correctAnswer: "D" },
+                    { number: 4, correctAnswer: "B" },
+                    { number: 5, correctAnswer: "A" },
+                    { number: 6, correctAnswer: "E" }
+                ]
+            }
+        ];
+
+        // Global variable for quizzes, initialized from localStorage or defaults
+        let quizzes = [];
+        let currentQuizIndex = 0; // Initialize with 0 to start on the first quiz
+
+
+        // --- Helper Functions for Local Storage ---
+        function loadQuizzesFromLocalStorage() {
+            try {
+                const storedQuizzes = localStorage.getItem('telcC1Quizzes');
+                if (storedQuizzes) {
+                    // Important: Always use the data from localStorage if it exists and is valid.
+                    // If the stored data is empty or corrupted, fall back to default.
+                    const parsedQuizzes = JSON.parse(storedQuizzes);
+                    if (Array.isArray(parsedQuizzes) && parsedQuizzes.length > 0) {
+                        return parsedQuizzes;
+                    }
+                }
+            } catch (e) {
+                console.error("Error loading quizzes from localStorage:", e);
+                // If there's an error, it means the stored data is bad, so we ignore it.
+            }
+            // If nothing in localStorage, or an error occurred, return the default set
+            return defaultQuizzes; 
+        }
+
+        function saveQuizzesToLocalStorage() {
+            try {
+                localStorage.setItem('telcC1Quizzes', JSON.stringify(quizzes));
+            } catch (e) {
+                console.error("Error saving quizzes to localStorage:", e);
+                // Inform user if storage is full/unavailable
+                showFeedback("Could not save quizzes. Browser storage might be full or unavailable.", false);
+            }
+        }
+
+        // --- Initialize Quizzes Array ---
+        // Load existing quizzes or use the full default set
+        quizzes = loadQuizzesFromLocalStorage();
+
+
+        // Get DOM elements
+        const quizSelect = document.getElementById('quiz-select');
+        const quizContentArea = document.getElementById('quiz-content-area');
+        const skipButton = document.getElementById('skip-button');
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const feedbackCloseButton = document.getElementById('feedback-close-button');
+
+        // NEW DOM Elements for Add Quiz functionality
+        const addQuizButton = document.getElementById('add-quiz-button');
+        const mainQuizContainer = document.getElementById('main-quiz-container');
+        const addQuizForm = document.getElementById('add-quiz-form');
+        const newQuizTitleInput = document.getElementById('new-quiz-title');
+        const newQuizTextSectionsInput = document.getElementById('new-quiz-text-sections');
+        const newQuizStatementsInput = document.getElementById('new-quiz-statements');
+        const saveNewQuizButton = document.getElementById('save-new-quiz-button');
+        const cancelAddQuizButton = document.getElementById('cancel-add-quiz-button');
+
+        // NEW DOM Element for Delete Quiz
+        const deleteQuizButton = document.getElementById('delete-quiz-button');
+
+
+        /**
+         * Populates the quiz selection dropdown with current quizzes.
+         */
+        function updateQuizSelectorOptions() {
+            quizSelect.innerHTML = ''; // Clear existing options
+            if (quizzes.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No quizzes available';
+                quizSelect.appendChild(option);
+                quizSelect.disabled = true; // Disable select if no options
+                skipButton.setAttribute('disabled', 'true');
+                deleteQuizButton.setAttribute('disabled', 'true');
+            } else {
+                quizSelect.disabled = false;
+                skipButton.removeAttribute('disabled');
+                deleteQuizButton.removeAttribute('disabled');
+                quizzes.forEach((quiz, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = quiz.title;
+                    quizSelect.appendChild(option);
+                });
+            }
+        }
+
+        /**
+         * Renders the current quiz based on currentQuizIndex.
+         */
+        function renderQuiz() {
+            const currentQuiz = quizzes[currentQuizIndex];
+            if (!currentQuiz) {
+                quizContentArea.innerHTML = '<p class="text-xl text-slate-300 text-center py-10">No quiz selected or available. Please add a new quiz.</p>';
+                // Disable action buttons if no quiz
+                // These will be re-created by renderQuiz, so this targets static ones or if renderQuiz exits early
+                if (document.getElementById('check-button')) document.getElementById('check-button').setAttribute('disabled', 'true');
+                if (document.getElementById('show-correct-button')) document.getElementById('show-correct-button').setAttribute('disabled', 'true');
+                return;
+            } else {
+                // Enable buttons if a quiz is available (handled by updateQuizSelectorOptions for static buttons)
+            }
+
+            // Construct the HTML for the current quiz
+            let quizHtml = `
+                <h2 class="text-2xl font-bold text-slate-100 mb-6 text-center">${currentQuiz.title}</h2>
+
+                <div class="lg:grid lg:grid-cols-2 lg:gap-8">
+                    <div class="mb-6 lg:mb-0 bg-slate-700 p-5 rounded-lg border border-slate-600 shadow-inner shadow-slate-900/20">
+                        <h3 class="text-xl font-semibold text-slate-200 mb-4">Textabschnitte (A–H):</h3>
+                        <div class="grid grid-cols-1 gap-y-3 text-slate-300 text-base">
+            `;
+            // Add text sections A-H
+            const sectionKeys = Object.keys(currentQuiz.textSections).sort(); // Ensure A-H order
+            sectionKeys.forEach(key => {
+                quizHtml += `
+                            <p><strong class="text-sky-400">${key})</strong> ${currentQuiz.textSections[key]}</p>
+                `;
+            });
+            quizHtml += `
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-slate-200 mb-4">Aufgaben (1–8):</h3>
+            `;
+
+            // Add statements with dropdowns
+            currentQuiz.statements.forEach(statement => {
+                // Only render if a correct answer is provided (or if it's a placeholder for future questions)
+                if (statement.correctAnswer !== "" || statement.number) {
+                    quizHtml += `
+                        <div class="flex items-center space-x-3 bg-slate-700 p-4 rounded-lg shadow-sm border border-slate-600 hover:shadow-md hover:shadow-slate-900/20 transition">
+                            <span class="font-bold text-lg text-slate-200 w-8 flex-shrink-0">${statement.number}</span>
+                            <span class="text-lg text-slate-300 flex-shrink-0">➝</span>
+                            <select id="select-${statement.number}" class="p-2.5 border border-slate-500 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 flex-grow bg-slate-600 text-slate-100">
+                                <option value="">Wählen Sie...</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                                <option value="F">F</option>
+                                <option value="G">G</option>
+                                <option value="H">H</option>
+                            </select>
+                            <span id="feedback-${statement.number}" class="feedback-icon flex-shrink-0"></span>
+                        </div>
+                    `;
+                }
+            });
+
+            quizHtml += `
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mt-8">
+                    <button id="check-button" class="bg-sky-400 hover:bg-sky-300 text-slate-900 font-bold py-3.5 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg shadow-sky-500/30">
+                        Check Answers
+                    </button>
+                    <button id="show-correct-button" class="bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-bold py-3.5 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg shadow-emerald-500/30">
+                        Show Correct Answers
+                    </button>
+                </div>
+            `;
+
+            quizContentArea.innerHTML = quizHtml;
+
+            // Set the dropdown to the current quiz after rendering
+            quizSelect.value = currentQuizIndex;
+        }
+
+        /**
+         * Checks the selected answers against the correct answers and provides feedback.
+         */
+        function checkAnswers() {
+            const currentQuiz = quizzes[currentQuizIndex];
+            let correctCount = 0;
+            let attemptedCount = 0; // Track how many questions were actually attempted
+            let totalQuestions = 0; // Total number of questions in the quiz
+
+            currentQuiz.statements.forEach(statement => {
+                if (statement.correctAnswer !== "") { // Only count and check actual questions
+                    totalQuestions++;
+                    const selectElement = document.getElementById(`select-${statement.number}`);
+                    const feedbackElement = document.getElementById(`feedback-${statement.number}`);
+
+                    if (selectElement && feedbackElement) {
+                        const selectedValue = selectElement.value;
+
+                        if (selectedValue === "") {
+                            // If no answer selected, just clear feedback and don't count as attempted
+                            feedbackElement.textContent = "";
+                            feedbackElement.className = 'feedback-icon'; // Reset classes
+                        } else {
+                            attemptedCount++; // This question was attempted
+                            if (selectedValue === statement.correctAnswer) {
+                                feedbackElement.textContent = "✅";
+                                feedbackElement.classList.remove('incorrect');
+                                feedbackElement.classList.add('correct');
+                                correctCount++;
+                            } else {
+                                feedbackElement.textContent = "❌ Wrong"; // Only say "Wrong"
+                                feedbackElement.classList.remove('correct');
+                                feedbackElement.classList.add('incorrect');
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Display a summary of attempted questions
+            showFeedback(`You got ${correctCount} out of ${totalQuestions} questions correct! (Attempted: ${attemptedCount})`, true);
+        }
+
+        /**
+         * Reveals all correct answers for the current quiz.
+         */
+        function showCorrectAnswers() {
+            const currentQuiz = quizzes[currentQuizIndex];
+            currentQuiz.statements.forEach(statement => {
+                if (statement.correctAnswer !== "") {
+                    const selectElement = document.getElementById(`select-${statement.number}`);
+                    const feedbackElement = document.getElementById(`feedback-${statement.number}`);
+
+                    if (selectElement && feedbackElement) {
+                        selectElement.value = statement.correctAnswer; // Set dropdown to correct answer
+                        feedbackElement.textContent = `✅ (${statement.correctAnswer})`; // Show correct answer explicitly
+                        feedbackElement.classList.remove('incorrect');
+                        feedbackElement.classList.add('correct');
+                    }
+                }
+            });
+            showFeedback("All correct answers are now displayed.", true);
+        }
+
+        /**
+         * Skips to the next quiz in the sequence.
+         */
+        function skipQuiz() {
+            if (quizzes.length === 0) {
+                showFeedback("No quizzes to skip to.", false);
+                return;
+            }
+            currentQuizIndex++;
+            if (currentQuizIndex >= quizzes.length) {
+                currentQuizIndex = 0; // Loop back to the first quiz if at the end
+                showFeedback("You've completed all available quizzes! Starting over from the beginning.", true);
+            }
+            renderQuiz();
+        }
+
+        /**
+         * Shows the add quiz form and hides the main quiz display.
+         */
+        function showAddQuizForm() {
+            mainQuizContainer.classList.add('hidden');
+            addQuizForm.classList.remove('hidden');
+            // Clear previous form data
+            newQuizTitleInput.value = '';
+            newQuizTextSectionsInput.value = '';
+            newQuizStatementsInput.value = '';
+            newQuizTitleInput.focus(); // Focus on the first input
+        }
+
+        /**
+         * Hides the add quiz form and shows the main quiz display.
+         */
+        function hideAddQuizForm() {
+            addQuizForm.classList.add('hidden');
+            mainQuizContainer.classList.remove('hidden');
+        }
+
+        /**
+         * Parses input from the form, creates a new quiz object, and adds it to the quizzes array.
+         */
+        function saveNewQuiz() {
+            const title = newQuizTitleInput.value.trim();
+            const textSectionsRaw = newQuizTextSectionsInput.value.trim();
+            const statementsRaw = newQuizStatementsInput.value.trim();
+
+            if (!title || !textSectionsRaw || !statementsRaw) {
+                showFeedback("Please fill in all fields to add a quiz.", false);
+                return;
+            }
+
+            const newTextSections = {};
+            textSectionsRaw.split('\n').forEach(line => {
+                const match = line.match(/^([A-Ha-h])\)\s*(.*)/); // Matches "A) text"
+                if (match) {
+                    newTextSections[match[1].toUpperCase()] = match[2].trim();
+                }
+            });
+
+            const newStatements = [];
+            statementsRaw.split('\n').forEach(line => {
+                const match = line.match(/^(\d+)\s*➝\s*([A-Za-z])$/); // Matches "1 ➝ G"
+                if (match) {
+                    newStatements.push({
+                        number: parseInt(match[1]),
+                        correctAnswer: match[2].toUpperCase()
+                    });
+                }
+            });
+
+            if (Object.keys(newTextSections).length === 0 || newStatements.length === 0) {
+                showFeedback("Invalid format for Text Sections or Statements. Please check the examples.", false);
+                return;
+            }
+
+            const newQuiz = {
+                id: `quiz${Date.now()}`, // More robust unique ID
+                title: title,
+                textSections: newTextSections,
+                statements: newStatements
+            };
+
+            quizzes.push(newQuiz);
+            saveQuizzesToLocalStorage(); // SAVE THE UPDATED QUIZZES ARRAY
+            
+            updateQuizSelectorOptions(); // Re-populate dropdown with new quiz
+            currentQuizIndex = quizzes.length - 1; // Select the newly added quiz
+            renderQuiz(); // Show the new quiz
+
+            showFeedback("Quiz added successfully!", true);
+            hideAddQuizForm(); // Go back to main quiz display
+        }
+
+        /**
+         * Deletes the currently selected quiz after user confirmation.
+         */
+        function deleteCurrentQuiz() {
+            if (quizzes.length === 0) {
+                showFeedback("There are no quizzes to delete.", false);
+                return;
+            }
+
+            const quizToDelete = quizzes[currentQuizIndex];
+            const confirmDelete = confirm(`Are you sure you want to delete the quiz:\n"${quizToDelete.title}"?\n\nThis action cannot be undone.`);
+
+            if (confirmDelete) {
+                quizzes.splice(currentQuizIndex, 1); // Remove the quiz
+
+                saveQuizzesToLocalStorage(); // Save changes to localStorage
+
+                if (quizzes.length === 0) {
+                    currentQuizIndex = 0; // Reset index if no quizzes left
+                    showFeedback("All quizzes have been deleted. You can add new ones.", true);
+                } else {
+                    // Adjust currentQuizIndex: If the last quiz was deleted, move to the new last quiz.
+                    // Otherwise, the index remains valid and points to the next quiz.
+                    if (currentQuizIndex >= quizzes.length) {
+                        currentQuizIndex = quizzes.length - 1;
+                    }
+                    showFeedback(`Quiz "${quizToDelete.title}" has been deleted.`, true);
+                }
+
+                updateQuizSelectorOptions(); // Refresh the dropdown
+                renderQuiz(); // Render the new current quiz or empty state
+            }
+        }
+
+        /**
+         * Displays a feedback message in the central feedback box.
+         * @param {string} message - The message to display.
+         * @param {boolean} isSuccess - True for success styling, false for error/info. (Currently only text changes)
+         */
+        function showFeedback(message, isSuccess) {
+            feedbackMessage.textContent = message;
+            // You can add different styling based on success/failure if needed
+            // e.g., feedbackMessage.className = isSuccess ? 'text-green-400' : 'text-red-400';
+            feedbackBox.classList.remove('hidden');
+            feedbackCloseButton.textContent = "Close"; // Reset button text
+        }
+
+
+        // --- Event Listeners ---
+        quizSelect.addEventListener('change', (event) => {
+            currentQuizIndex = parseInt(event.target.value);
+            renderQuiz();
+        });
+
+        quizContentArea.addEventListener('click', (event) => {
+            // Event delegation for dynamically added check/show buttons
+            if (event.target.id === 'check-button') {
+                checkAnswers();
+            } else if (event.target.id === 'show-correct-button') {
+                showCorrectAnswers();
+            }
+        });
+
+        skipButton.addEventListener('click', skipQuiz);
+        feedbackCloseButton.addEventListener('click', () => {
+            feedbackBox.classList.add('hidden');
+        });
+
+        // Event Listeners for Add Quiz buttons
+        addQuizButton.addEventListener('click', showAddQuizForm);
+        cancelAddQuizButton.addEventListener('click', hideAddQuizForm);
+        saveNewQuizButton.addEventListener('click', saveNewQuiz);
+
+        // Event Listener for NEW Delete Quiz button
+        deleteQuizButton.addEventListener('click', deleteCurrentQuiz);
+
+
+        // --- Initialize the App ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // This crucial part makes sure the quizzes are initially saved if localStorage is empty
+            // or if the default quizzes have been updated.
+            // If localStorage is completely empty, it will save the `defaultQuizzes`.
+            if (!localStorage.getItem('telcC1Quizzes')) {
+                 saveQuizzesToLocalStorage(); // Save the comprehensive default set
+                 // After saving the defaults, we need to reload 'quizzes' from localStorage
+                 // to ensure 'quizzes' array truly reflects what's in storage,
+                 // especially if 'defaultQuizzes' was updated from a smaller set.
+                 quizzes = loadQuizzesFromLocalStorage();
+            }
+           
+            // Ensure currentQuizIndex is valid after loading/setting quizzes
+            if (quizzes.length > 0) {
+                if (currentQuizIndex >= quizzes.length) {
+                    currentQuizIndex = 0; // Fallback if previously selected quiz was deleted or index is out of bounds
+                }
+            } else {
+                currentQuizIndex = 0; // If no quizzes at all, reset index
+            }
+
+            updateQuizSelectorOptions(); // Populate dropdown with loaded/default quizzes
+            renderQuiz();        // Render the first quiz
+        });
+    </script>
+</body>
+</html>
