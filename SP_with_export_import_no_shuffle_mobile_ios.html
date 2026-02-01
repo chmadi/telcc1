@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0ea5e9" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Telc C1 Trainer" />
+<title>Telc C1 Sprachbausteine Trainer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: #1e293b; }
+    .header-menu { background-color: #1f2937; color: #d1d5db; padding: 1rem 2rem; display: flex; justify-content: center; border-bottom: 2px solid #374151; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .header-menu::-webkit-scrollbar { display: none; }
+    .header-menu a { padding: 0.5rem 1rem; margin: 0 0.5rem; border-radius: 0.5rem; font-weight: 500; transition: background-color 0.2s; }
+    .header-menu a:hover { background-color: #374151; color: #f3f4f6; }
+    .header-menu .active { background-color: #4b5563; color: #f3f4f6; font-weight: 700; }
+    .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7); }
+    .modal-content { background-color: #334155; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 8px; color: white; }
+    .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+    .close-button:hover, .close-button:focus { color: #fff; cursor: pointer; }
+    .hidden { display: none; }
+    .question-item { background-color: #2a3447; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #475569; }
+    .question-text { color: #cbd5e1; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; }
+    .option-item { cursor: pointer; padding: 0.25rem; margin-left: 0.75rem; border-radius: 0.25rem; border: 1px solid transparent; font-size: 1rem; color: #fff; font-weight: 600; transition: background-color 0.2s; }
+    .option-item:hover { background-color: #475569; }
+    .option-item.selected { background-color: #3b82f6; }
+    .option-item.correct  { background-color: #10b981; }
+    .option-item.incorrect{ background-color: #ef4444; }
+    .quiz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+    .status-badge { position: fixed; top: 10px; right: 10px; background: #0ea5e9; color: #0b1220; font-weight: 700; padding: 6px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    .status-badge.error { background: #ef4444; color: white; }
+  
+    /* Phone layout tweaks */
+    @media (max-width: 640px) {
+      .header-menu { padding: 0.75rem 0.75rem; justify-content: flex-start; }
+      .header-menu a { margin: 0 0.25rem; padding: 0.45rem 0.65rem; }
+      #main-quiz-container { padding: 1rem !important; }
+      .question-item { padding: 0.9rem; }
+      .option-item { margin-left: 0; padding: 0.6rem 0.75rem; }
+      .status-badge { font-size: 0.85rem; }
+    }
+    @media (min-width: 768px) {
+      .quiz-grid { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); }
+    }
+
+  </style>
+</head>
+<body>
+  <!-- Navigation Menu -->
+  <nav class="header-menu">
+    <a href="index.html">Home</a>
+    <a href="LV1.html">LV1</a>
+    <a href="LV2.html">LV2</a>
+    <a href="LV3.html">LV3</a>
+    <a href="HV1.html">HV1</a>
+    <a href="HV2.html">HV2</a>
+    <a href="HV3.html">HV3</a>
+    <a href="SP.html" class="active">SP</a>
+  </nav>
+
+  <div id="status" class="status-badge">Init…</div>
+
+  <div class="p-4 sm:p-6 lg:p-8 w-full mx-auto max-w-6xl">
+    <div id="main-quiz-container" class="bg-slate-800 p-8 rounded-lg shadow-2xl w-full border-t-4 border-sky-500 ring-1 ring-slate-700">
+      <h1 class="text-3xl font-extrabold text-slate-100 mb-6 text-center">
+        Telc C1 Sprachbausteine Trainer
+      </h1>
+      <p class="text-lg text-slate-300 mb-8 text-center" id="quiz-question-text">
+        Wählen Sie die richtige Antwort für jede Frage.
+      </p>
+
+      <!-- Quiz selection and action buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-between mb-8 space-y-4 sm:space-y-0">
+        <div class="flex items-center space-x-2 w-full sm:w-auto">
+          <label for="quiz-selector" class="text-slate-300 font-medium">Wähle ein Quiz:</label>
+          <select id="quiz-selector" class="p-2.5 border border-slate-500 rounded-md shadow-sm bg-slate-600 text-slate-100 flex-grow"></select>
+        </div>
+        <div class="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
+          <button type="button" id="add-quiz-btn" class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded-lg shadow-lg shadow-blue-500/30 transition transform hover:scale-105">
+            Neues Quiz hinzufügen
+          </button>
+          <button type="button" id="edit-quiz-btn" class="bg-sky-500 hover:bg-sky-400 text-white font-bold py-2 px-4 rounded-lg shadow-lg shadow-sky-500/30 transition transform hover:scale-105">
+            Quiz bearbeiten
+          </button>
+          <button type="button" id="delete-quiz-btn" class="bg-red-500 hover:bg-red-400 text-white font-bold py-2 px-4 rounded-lg shadow-lg shadow-red-500/30 transition transform hover:scale-105">
+            Quiz löschen
+          </button>
+          <button type="button" id="export-quizzes-btn" class="bg-purple-500 hover:bg-purple-400 text-white font-bold py-2 px-4 rounded-lg shadow-lg shadow-purple-500/30 transition transform hover:scale-105">
+            Quizzes exportieren
+          </button>
+          <button type="button" id="import-quizzes-btn" class="bg-green-500 hover:bg-green-400 text-white font-bold py-2 px-4 rounded-lg shadow-lg shadow-green-500/30 transition transform hover:scale-105">
+            Quizzes importieren
+          </button>
+        </div>
+      </div>
+
+      <!-- Quiz content area -->
+      <div id="quiz-content-area" class="quiz-grid"></div>
+
+      <!-- Control buttons -->
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center items-stretch mt-8 w-full gap-4">
+        <button type="button" id="prev-quiz-button" class="bg-indigo-500 hover:bg-indigo-400 text-white font-bold w-full sm:w-auto py-3.5 px-8 rounded-lg shadow-lg shadow-indigo-500/30 transition transform hover:scale-105">
+          &larr;
+        </button>
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button type="button" id="check-button" class="bg-sky-400 hover:bg-sky-300 text-slate-900 font-bold w-full sm:w-auto py-3.5 px-8 rounded-lg shadow-lg shadow-sky-500/30 transition transform hover:scale-105">
+            Antworten prüfen
+          </button>
+          <button type="button" id="reset-button" class="bg-gray-400 hover:bg-gray-300 text-slate-900 font-bold w-full sm:w-auto py-3.5 px-8 rounded-lg shadow-lg shadow-gray-500/30 transition transform hover:scale-105">
+            Zurücksetzen
+          </button>
+          <button type="button" id="show-correct-button" class="bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-bold w-full sm:w-auto py-3.5 px-8 rounded-lg shadow-lg shadow-emerald-500/30 transition transform hover:scale-105">
+            Richtige Lösungen anzeigen
+          </button>
+        </div>
+        <button type="button" id="next-quiz-button" class="bg-indigo-500 hover:bg-indigo-400 text-white font-bold w-full sm:w-auto py-3.5 px-8 rounded-lg shadow-lg shadow-indigo-500/30 transition transform hover:scale-105">
+          &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for adding/editing a quiz -->
+  <div id="addQuizModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <span class="close-button" role="button" aria-label="Schließen">&times;</span>
+      <h2 id="modalTitle" class="text-2xl font-bold mb-4">Neues Quiz hinzufügen</h2>
+
+      <div id="titleField" class="mb-4 hidden">
+        <label for="quizTitle" class="block text-slate-300 font-medium mb-1">Quiz-Name:</label>
+        <input type="text" id="quizTitle" class="w-full p-2 rounded-md bg-slate-700 text-white border border-slate-600" placeholder="Mein Quizname" />
+        <p class="text-slate-400 text-xs mt-1">Beim Hinzufügen ausgeblendet. Zum Umbenennen bitte „Quiz bearbeiten“ verwenden.</p>
+      </div>
+
+      <div class="mb-4">
+        <label for="quizDataInput" class="block text-slate-300 font-medium mb-1">
+          Quiz-Daten (<strong>22 Fragen</strong>). Markieren Sie die richtige Antwort mit <code>x</code> oder <code>X</code>:
+        </label>
+        <pre class="text-slate-400 text-sm bg-slate-700 p-2 rounded mb-2">
+Beispiel (ohne Fragetext):
+25.
+A) Option
+B) Option
+x C) Correct
+D) Option
+
+Erlaubte Varianten für die Markierung:
+- x C) Correct
+- X C) Correct
+- C) x Correct
+- C) Correct x
+        </pre>
+        <textarea id="quizDataInput" rows="20" class="w-full p-2 rounded-md bg-slate-700 text-white border border-slate-600" placeholder="25.
+A) Option
+B) Option
+x C) Correct
+D) Option
+
+26.
+A) ...
+B) ...
+C) ...
+x D) ..."></textarea>
+      </div>
+      <div id="modal-error-message" class="text-red-400 mb-4 hidden"></div>
+      <button type="button" id="saveQuizBtn" class="bg-green-500 hover:bg-green-400 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+        Speichern
+      </button>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const statusEl = document.getElementById('status');
+    const setStatus = (msg, isError=false) => {
+      if (!statusEl) return;
+      statusEl.textContent = msg;
+      statusEl.classList.toggle('error', isError);
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        setStatus('Bereit');
+
+        const defaultQuizzes = [
+          {
+            id: "sp_quiz1",
+            title: "Beispiel Quiz 1",
+            questionText: "Wählen Sie die richtige Antwort für jede Frage.",
+            questions: Array.from({length:22}, (_,i)=>{
+              const n = i+1;
+              return { question: n+".", options: ["A"+n,"B"+n,"C"+n,"D"+n], correct: ["A","B","C","D"][i%4] };
+            })
+          }
+        ];
+
+        let quizzes = [];
+        let currentQuizIndex = 0;
+        let isEditing = false;
+        let userSelections = {};
+
+        const el = (id) => document.getElementById(id);
+        const quizContentArea   = el('quiz-content-area');
+        const quizSelector      = el('quiz-selector');
+        const checkButton       = el('check-button');
+        const resetButton       = el('reset-button');
+        const showCorrectButton = el('show-correct-button');
+        const nextQuizButton    = el('next-quiz-button');
+        const prevQuizButton    = el('prev-quiz-button');
+        const addQuizBtn        = el('add-quiz-btn');
+        const editQuizBtn       = el('edit-quiz-btn');
+        const deleteQuizBtn     = el('delete-quiz-btn');
+        const exportQuizzesBtn  = el('export-quizzes-btn');
+        const importQuizzesBtn  = el('import-quizzes-btn');
+        const modal             = el('addQuizModal');
+        const modalTitle        = el('modalTitle');
+        const saveQuizBtn       = el('saveQuizBtn');
+        const quizDataInput     = el('quizDataInput');
+        const modalError        = el('modal-error-message');
+        const titleField        = el('titleField');
+        const quizTitleInput    = el('quizTitle');
+
+        const requiredEls = [quizContentArea, quizSelector, checkButton, resetButton, showCorrectButton, nextQuizButton, prevQuizButton, addQuizBtn, editQuizBtn, deleteQuizBtn, exportQuizzesBtn, importQuizzesBtn, modal, modalTitle, saveQuizBtn, quizDataInput, modalError, titleField];
+        if (requiredEls.some(n => !n)) {
+          setStatus('Fehlende DOM-Elemente – bitte Datei vollständig verwenden.', true);
+          console.error('Missing elements', requiredEls.map(n => !!n));
+          return;
+        }
+
+        function loadQuizzesFromLocalStorage() {
+          try {
+            const storedQuizzes = localStorage.getItem('spQuizzes');
+            if (!storedQuizzes) return defaultQuizzes;
+            const parsed = JSON.parse(storedQuizzes);
+            if (!Array.isArray(parsed)) throw new Error('Stored quizzes not array');
+            return parsed;
+          } catch (e) {
+            console.warn('LocalStorage defekt, wird zurückgesetzt:', e);
+            localStorage.removeItem('spQuizzes');
+            return defaultQuizzes;
+          }
+        }
+        function saveQuizzesToLocalStorage() {
+          try {
+            localStorage.setItem('spQuizzes', JSON.stringify(quizzes));
+          } catch (e) {
+            console.warn('Konnte nicht speichern:', e);
+          }
+        }
+
+        function parseOptionLine(raw, expectedLetter) {
+          let line = String(raw).trim();
+          let marked = false;
+          if (/^[xX]\s+/.test(line)) { marked = true; line = line.replace(/^[xX]\s+/, ""); }
+          const labelMatch = line.match(/^([A-Da-d])[)\.\:\-\s]?\s*(.*)$/);
+          if (!labelMatch) throw new Error(`Option ${expectedLetter}: Label fehlt oder ist falsch.`);
+          const letter = labelMatch[1].toUpperCase();
+          let text = labelMatch[2] || "";
+          if (/^[xX]\s+/.test(text)) { marked = true; text = text.replace(/^[xX]\s+/, ""); }
+          if (/\s+[xX]\s*$/.test(text)) { marked = true; text = text.replace(/\s+[xX]\s*$/, ""); }
+          if (/^\(\s*[xX]\s*\)\s*/.test(text)) { marked = true; text = text.replace(/^\(\s*[xX]\s*\)\s*/, ""); }
+          text = text.trim();
+          if (!text) throw new Error(`Option ${letter} darf nicht leer sein.`);
+          if (letter !== expectedLetter) throw new Error(`Erwarte Option ${expectedLetter}, gefunden: ${letter}.`);
+          return { letter, text, marked };
+        }
+        function parseBulkInput(data) {
+          const lines = data.split('\n').map(l => l.trim()).filter(Boolean);
+          const questions = [];
+          const optionLetters = ['A','B','C','D'];
+          let i = 0;
+          while (i < lines.length) {
+            const numLine = lines[i];
+            const numMatch = numLine.match(/^(\d+)[.)]?\s*$/);
+            if (!numMatch) throw new Error(`Zeile ${i+1}: Erwartet nur die Nummer (z.B. "25." oder "25)")`);
+            const number = numMatch[1];
+            i++;
+            const options = [];
+            let correctLetter = '';
+            let markedCount = 0;
+            for (let j = 0; j < 4; j++) {
+              if (i >= lines.length) throw new Error(`Zu wenige Optionen für Nummer ${number}.`);
+              const expectedLetter = optionLetters[j];
+              const { letter, text, marked } = parseOptionLine(lines[i], expectedLetter);
+              options.push(text);
+              if (marked) { correctLetter = letter; markedCount += 1; }
+              i++;
+            }
+            if (markedCount === 0) throw new Error(`Für Nummer ${number} wurde keine korrekte Antwort (x) gefunden.`);
+            if (markedCount > 1) throw new Error(`Für Nummer ${number} wurden mehrere Antworten als korrekt markiert.`);
+            questions.push({ number, options, correct: correctLetter });
+          }
+          if (questions.length !== 22) throw new Error(`Es müssen genau 22 Fragen sein, gefunden: ${questions.length}.`);
+          return questions;
+        }
+        function formatForEdit(questions) {
+          const optionLetters = ['A','B','C','D'];
+          return questions.map((q, idx) => {
+            const number = q.number || (q.question ? String(q.question).split('.')[0] : String(idx + 1));
+            const lines = [`${number}.`];
+            q.options.forEach((opt, i) => {
+              const lab = optionLetters[i];
+              const mark = (q.correct === lab) ? 'x ' : '';
+              lines.push(`${mark}${lab}) ${opt}`);
+            });
+            return lines.join('\n');
+          }).join('\n');
+        }
+        function shuffleInPlace(arr) {
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          return arr;
+        }
+        function renderQuiz() {
+          const currentQuiz = quizzes[currentQuizIndex];
+          if (!currentQuiz) {
+            quizContentArea.innerHTML = '<p class="text-xl text-slate-300 text-center py-10">Keine Quizzes verfügbar. Füge ein neues hinzu!</p>';
+            document.querySelector('h1').textContent = "Telc C1 Sprachbausteine Trainer";
+            return;
+          }
+          document.querySelector('h1').textContent = `Telc C1 Sprachbausteine Trainer: ${currentQuiz.title || 'Quiz'}`;
+          document.getElementById('quiz-question-text').textContent = currentQuiz.questionText || "Wählen Sie die richtige Antwort für jede Frage.";
+          userSelections = {};
+          const optionLetters = ['A','B','C','D'];
+          let html = '';
+          currentQuiz.questions.forEach((q, idx) => {
+            const number = q.number || (q.question ? String(q.question).split('.')[0] : String(idx+1));
+            const indices = [0,1,2,3];
+            html += `<div class="question-item" data-question-index="${idx}">`;
+            html += `<div class="question-text">${number}.</div>`;
+            indices.forEach((origIdx) => {
+              const displayLetter = optionLetters[origIdx];
+              const text = q.options[origIdx];
+              const isCorrect = (displayLetter === q.correct);
+              html += `
+                <div class="option-item flex items-center space-x-2" data-option-letter="${displayLetter}" data-correct="${isCorrect ? 'true' : 'false'}">
+                  <span>${displayLetter})</span>
+                  <span>${text}</span>
+                </div>`;
+            });
+            html += `</div>`;
+          });
+          quizContentArea.innerHTML = html;
+          attachOptionListeners();
+        }
+        function attachOptionListeners() {
+          document.querySelectorAll('.option-item').forEach(item => {
+            item.addEventListener('click', handleOptionClick);
+          });
+        }
+        function handleOptionClick(event) {
+          const clicked = event.currentTarget;
+          const parent = clicked.closest('.question-item');
+          const qIndex = parent.getAttribute('data-question-index');
+          parent.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
+          clicked.classList.add('selected');
+          userSelections[qIndex] = clicked.getAttribute('data-option-letter');
+        }
+        function checkAnswers() {
+          document.querySelectorAll('.question-item').forEach(qItem => {
+            qItem.querySelectorAll('.option-item').forEach(optItem => {
+              const isSelected = optItem.classList.contains('selected');
+              const isCorrect  = optItem.getAttribute('data-correct') === 'true';
+              optItem.classList.remove('correct', 'incorrect');
+              if (isSelected) optItem.classList.add(isCorrect ? 'correct' : 'incorrect');
+            });
+          });
+        }
+        function resetQuiz() {
+          userSelections = {};
+          document.querySelectorAll('.option-item').forEach(item => item.classList.remove('selected','correct','incorrect'));
+          renderQuiz();
+        }
+        function showCorrectAnswers() {
+          userSelections = {};
+          document.querySelectorAll('.question-item').forEach(qItem => {
+            qItem.querySelectorAll('.option-item').forEach(optItem => {
+              optItem.classList.remove('selected','incorrect','correct');
+              if (optItem.getAttribute('data-correct') === 'true') optItem.classList.add('correct');
+            });
+          });
+        }
+        function goToNextQuiz() {
+          if (!quizzes.length) return;
+          currentQuizIndex = (currentQuizIndex + 1) % quizzes.length;
+          quizSelector.value = String(currentQuizIndex);
+          renderQuiz();
+        }
+        function goToPrevQuiz() {
+          if (!quizzes.length) return;
+          currentQuizIndex = (currentQuizIndex - 1 + quizzes.length) % quizzes.length;
+          quizSelector.value = String(currentQuizIndex);
+          renderQuiz();
+        }
+        function updateQuizSelectorOptions() {
+          quizSelector.innerHTML = quizzes.map((q, idx) => `<option value="${idx}">${q.title || 'Quiz'}</option>`).join('');
+          if (quizzes.length > 0) quizSelector.value = String(currentQuizIndex);
+        }
+        function deleteCurrentQuiz() {
+          if (!quizzes.length) return;
+          if (confirm(`Möchten Sie das Quiz "${quizzes[currentQuizIndex].title || 'Quiz'}" wirklich löschen?`)) {
+            quizzes.splice(currentQuizIndex, 1);
+            currentQuizIndex = 0;
+            saveQuizzesToLocalStorage();
+            updateQuizSelectorOptions();
+            renderQuiz();
+          }
+        }
+        function exportQuizzes() {
+          try {
+            const quizzesJson = JSON.stringify(quizzes, null, 2);
+            const blob = new Blob([quizzesJson], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'telc_quizzes.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            alert('Quizzes erfolgreich exportiert.');
+          } catch (e) {
+            console.error(e);
+            alert('Export fehlgeschlagen. Bitte erneut versuchen.');
+          }
+        }
+        function importQuizzes() {
+          const fileInput = document.createElement('input');
+          fileInput.type = 'file';
+          fileInput.accept = '.json,application/json';
+          fileInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              try {
+                const text = String(event.target?.result || '[]');
+                const imported = JSON.parse(text);
+                if (!Array.isArray(imported)) throw new Error('Ungültiges Format (erwarte JSON-Array).');
+                if (confirm('Bestehende Quizzes durch importierte ersetzen?')) {
+                  quizzes = imported;
+                  saveQuizzesToLocalStorage();
+                  currentQuizIndex = 0;
+                  updateQuizSelectorOptions();
+                  renderQuiz();
+                  alert('Quizzes erfolgreich importiert.');
+                }
+              } catch (err) {
+                console.error(err);
+                alert(`Fehler beim Import: ${err.message}`);
+              } finally {
+                fileInput.remove();
+              }
+            };
+            reader.onerror = () => {
+              alert('Datei konnte nicht gelesen werden.');
+              fileInput.remove();
+            };
+            reader.readAsText(file);
+          }, { once: true });
+          document.body.appendChild(fileInput);
+          fileInput.click();
+        }
+
+        checkButton.addEventListener('click', (e) => { e.preventDefault(); checkAnswers(); });
+        resetButton.addEventListener('click', (e) => { e.preventDefault(); resetQuiz(); });
+        showCorrectButton.addEventListener('click', (e) => { e.preventDefault(); showCorrectAnswers(); });
+        nextQuizButton.addEventListener('click', (e) => { e.preventDefault(); goToNextQuiz(); });
+        prevQuizButton.addEventListener('click', (e) => { e.preventDefault(); goToPrevQuiz(); });
+        quizSelector.addEventListener('change', (e) => {
+          currentQuizIndex = parseInt(e.target.value, 10) || 0;
+          renderQuiz();
+        });
+        addQuizBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          isEditing = false;
+          modalTitle.textContent = "Neues Quiz hinzufügen";
+          titleField.classList.add('hidden');
+          quizTitleInput.value = "";
+          quizDataInput.value = "";
+          modalError.classList.add('hidden');
+          modal.style.display = 'block';
+          modal.setAttribute('aria-hidden', 'false');
+        });
+        editQuizBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const currentQuiz = quizzes[currentQuizIndex];
+          if (!currentQuiz) return;
+          isEditing = true;
+          modalTitle.textContent = "Quiz bearbeiten";
+          titleField.classList.remove('hidden');
+          quizTitleInput.value = currentQuiz.title || '';
+          quizDataInput.value = formatForEdit(currentQuiz.questions);
+          modalError.classList.add('hidden');
+          modal.style.display = 'block';
+          modal.setAttribute('aria-hidden', 'false');
+        });
+        deleteQuizBtn.addEventListener('click', (e) => { e.preventDefault(); deleteCurrentQuiz(); });
+        exportQuizzesBtn.addEventListener('click', (e) => { e.preventDefault(); exportQuizzes(); });
+        importQuizzesBtn.addEventListener('click', (e) => { e.preventDefault(); importQuizzes(); });
+
+        document.querySelectorAll('.close-button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            modalError.classList.add('hidden');
+          });
+        });
+        window.addEventListener('click', e => {
+          if (e.target.classList.contains('modal')) {
+            e.target.style.display = 'none';
+            e.target.setAttribute('aria-hidden', 'true');
+            modalError.classList.add('hidden');
+          }
+        });
+
+        saveQuizBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const data  = quizDataInput.value.trim();
+          modalError.classList.add('hidden');
+          if (!data) {
+            modalError.textContent = "Quiz-Daten dürfen nicht leer sein.";
+            modalError.classList.remove('hidden');
+            return;
+          }
+          try {
+            const questions = parseBulkInput(data);
+            if (isEditing) {
+              const existing = quizzes[currentQuizIndex];
+              const newTitle = (quizTitleInput.value || '').trim() || existing.title || 'Quiz';
+              quizzes[currentQuizIndex] = { ...existing, title: newTitle, questions };
+            } else {
+              const newQuiz = {
+                id: `sp_quiz_${Date.now()}`,
+                title: `Quiz ${quizzes.length + 1}`,
+                questionText: "Wählen Sie die richtige Antwort für jede Frage.",
+                questions
+              };
+              quizzes.push(newQuiz);
+              currentQuizIndex = quizzes.length - 1;
+            }
+            saveQuizzesToLocalStorage();
+            updateQuizSelectorOptions();
+            renderQuiz();
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+          } catch (err) {
+            modalError.textContent = err.message;
+            modalError.classList.remove('hidden');
+          }
+        });
+
+        quizzes = loadQuizzesFromLocalStorage();
+        if (!Array.isArray(quizzes) || quizzes.length === 0) {
+          quizzes = defaultQuizzes;
+          saveQuizzesToLocalStorage();
+        }
+        updateQuizSelectorOptions();
+        renderQuiz();
+      } catch (err) {
+        console.error(err);
+        setStatus('Fehler beim Initialisieren – siehe Konsole.', true);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
